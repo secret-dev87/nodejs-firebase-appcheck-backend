@@ -2,17 +2,30 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Sequelize, Model, DataTypes } = require('sequelize');
+require('dotenv').config()
 
-const { initializeApp } = require('firebase-admin/app');
+const firebase_admin = require('firebase-admin');
+const admin = firebase_admin.initializeApp({
+  credential: firebase_admin.credential.cert({
+    "type": process.env.GOOGLE_SERVICE_TYPE,
+    "project_id": process.env.GOOGLE_PROJECT_ID,
+    "private_key_id": process.env.GOOGLE_PRIVATE_KEY_ID,
+    "private_key": process.env.GOOGLE_PRIVATE_KEY,
+    "client_email": process.env.GOOGLE_CLIENT_EMAIL,
+    "client_id": process.env.GOOGLE_CLIENT_ID,
+    "auth_uri": process.env.GOOGLE_AUTH_URI,
+    "token_uri": process.env.GOOGLE_TOKEN_URI,
+    "auth_provider_x509_cert_url": process.env.GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
+    "client_x509_cert_url": process.env.GOOGLE_CLIENT_X509_CERT_URL,
+    "universe_domain": process.env.GOOGLE_UNIVERSE_DOMAIN
+  })
+});
 const { getAppCheck } = require('firebase-admin/app-check');
 
 const app = express();
-const firebaseApp = initializeApp();
 
 const appCheckVerification = async (req, res, next) => {
   const appCheckToken = req.header("X-Firebase-AppCheck");
-
-  console.log("+++++++++++++", appCheckToken);
 
   if (!appCheckToken) {
     res.status(401);
@@ -23,7 +36,7 @@ const appCheckVerification = async (req, res, next) => {
     const appCheckClaims = await getAppCheck().verifyToken(appCheckToken);
     return next();
   } catch (err) {
-    res.status(401);
+    res.status(401);    
     return next('Unauthorized');
   }
 }
@@ -56,7 +69,6 @@ app.use(bodyParser.json());
 
 app.get('/api/users', [appCheckVerification], async (req, res) => {
   const users = await User.findAll();
-  console.log("++++++++++++++ users", users)
   res.json(users);
 });
 
@@ -67,7 +79,6 @@ app.get('/api/users/:id', [appCheckVerification], async (req, res) => {
 
 app.post('/api/users', [appCheckVerification], async (req, res) => {
   const user = await User.create(req.body);
-  console.log("++++++++++++++ user", user)
   res.json(user);
 });
 
